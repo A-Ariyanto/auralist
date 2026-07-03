@@ -1,294 +1,134 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { TasksProvider, useTasks } from "./store/TasksContext";
+import BreakdownPage from "./pages/BreakdownPage";
+import TodoPage from "./pages/TodoPage";
+import KanbanPage from "./pages/KanbanPage";
 
-const FINALIZE_MARKER = "[CHECKLIST_FINALIZED]";
+const PAGES = [
+  {
+    id: "breakdown",
+    label: "Task Breakdown",
+    description: "Turn a big task into steps with AI",
+    icon: (
+      <path
+        d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    ),
+  },
+  {
+    id: "todo",
+    label: "To-Do List",
+    description: "Check items off as you go",
+    icon: (
+      <path
+        d="M9 11l3 3 8-8M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+  },
+  {
+    id: "kanban",
+    label: "Kanban Board",
+    description: "Track progress across columns",
+    icon: (
+      <path
+        d="M5 4h4v16H5zM10.5 4h4v10h-4zM16 4h4v7h-4z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+  },
+];
 
-function parseChecklist(text) {
-  return text
-    .replace(FINALIZE_MARKER, "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => /^[-*•]\s+/.test(line))
-    .map((line) => line.replace(/^[-*•]\s+/, "").trim())
-    .filter((line) => line.length > 0);
-}
-
-function ChatMessage({ message }) {
-  const isUser = message.role === "user";
+function NavButton({ page, active, badge, onClick }) {
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-          isUser
-            ? "text-white rounded-br-sm"
-            : "bg-white text-slate-800 border border-slate-200 rounded-bl-sm shadow-sm"
-        }`}
-        style={
-          isUser
-            ? { background: "linear-gradient(135deg, #8B5CF6, #34D399)" }
-            : undefined
-        }
-      >
-        {message.text}
-      </div>
-    </div>
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors text-left ${
+        active
+          ? "bg-purple-50 text-purple-700"
+          : "text-slate-600 hover:bg-slate-100"
+      }`}
+    >
+      <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none">
+        {page.icon}
+      </svg>
+      <span className="flex-1 hidden md:block">{page.label}</span>
+      {badge > 0 && (
+        <span className="hidden md:inline-flex items-center justify-center rounded-full bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5">
+          {badge}
+        </span>
+      )}
+    </button>
   );
 }
 
-function TypingIndicator() {
-  return (
-    <div className="flex justify-start">
-      <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-        <div className="flex gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-purple-400 animate-bounce [animation-delay:0ms]" />
-          <span className="h-2 w-2 rounded-full bg-purple-300 animate-bounce [animation-delay:150ms]" />
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-bounce [animation-delay:300ms]" />
-        </div>
-      </div>
-    </div>
-  );
-}
+function AppShell() {
+  const [page, setPage] = useState("breakdown");
+  const { tasks } = useTasks();
+  const openCount = tasks.filter((t) => t.status !== "done").length;
 
-function ChatView({ messages, input, setInput, onSend, isLoading, error }) {
-  const bottomRef = useRef(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSend();
-  };
+  const current = PAGES.find((p) => p.id === page);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center mt-12">
-            <video
-              src="/AuraList-video-logo.mp4"
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-28 h-28 object-contain mb-4"
-            />
-            <p className="font-semibold text-slate-700 text-lg">
-              What task would you like to break down?
-            </p>
-            <p className="text-sm text-slate-500 mt-1">
-              Describe it below and I'll help you turn it into a checklist.
-            </p>
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <ChatMessage key={i} message={msg} />
-        ))}
-        {isLoading && <TypingIndicator />}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
-            {error}
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      <form
-        onSubmit={handleSubmit}
-        className="border-t border-slate-200 bg-white p-4 flex gap-3"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. Plan a birthday party for 20 people..."
-          disabled={isLoading}
-          className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent disabled:bg-slate-100"
-        />
-        <button
-          type="submit"
-          disabled={isLoading || input.trim().length === 0}
-          className="rounded-xl px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-          style={{ background: "linear-gradient(135deg, #8B5CF6, #34D399)" }}
-        >
-          Send
-        </button>
-      </form>
-    </div>
-  );
-}
-
-function ChecklistView({ items, onToggle, onReset }) {
-  const doneCount = items.filter((item) => item.done).length;
-
-  return (
-    <div className="flex flex-col h-full overflow-y-auto px-4 py-6">
-      <div className="max-w-lg w-full mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-800">
-            Your Checklist
-          </h2>
-          <span className="text-sm text-slate-500">
-            {doneCount} / {items.length} done
-          </span>
-        </div>
-
-        <div className="h-2 rounded-full bg-slate-200 mb-6 overflow-hidden">
-          <div
-            className="h-full transition-all duration-300"
-            style={{
-              width: `${items.length > 0 ? (doneCount / items.length) * 100 : 0}%`,
-              background: "linear-gradient(90deg, #8B5CF6, #34D399)",
-            }}
+    <div className="h-screen bg-slate-50 flex">
+      <aside className="w-16 md:w-60 shrink-0 bg-white border-r border-slate-200 flex flex-col">
+        <div className="px-3 md:px-5 py-4 border-b border-slate-200 flex items-center gap-2">
+          <img
+            src="/AuraList-logo.png"
+            alt="AuraList"
+            className="h-8 w-8 object-contain md:h-9 md:w-auto"
           />
         </div>
-
-        <ul className="space-y-2">
-          {items.map((item, i) => (
-            <li key={i}>
-              <label className="flex items-start gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm cursor-pointer hover:border-purple-300 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={item.done}
-                  onChange={() => onToggle(i)}
-                  className="mt-0.5 h-4 w-4 accent-purple-600 cursor-pointer"
-                />
-                <span
-                  className={`text-sm leading-relaxed ${
-                    item.done
-                      ? "line-through text-slate-400"
-                      : "text-slate-800"
-                  }`}
-                >
-                  {item.text}
-                </span>
-              </label>
-            </li>
+        <nav className="flex-1 p-2 md:p-3 space-y-1">
+          {PAGES.map((p) => (
+            <NavButton
+              key={p.id}
+              page={p}
+              active={page === p.id}
+              badge={p.id !== "breakdown" ? openCount : 0}
+              onClick={() => setPage(p.id)}
+            />
           ))}
-        </ul>
-
-        <div className="mt-6 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 flex items-start gap-3">
-          <span className="text-lg">🔗</span>
-          <p className="text-sm text-purple-800">
-            Future iterations will connect to existing to-do apps like Google
-            Calendar, Trello, etc.
+        </nav>
+        <div className="hidden md:block p-4 border-t border-slate-200">
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Break tasks down with AI, then track them and export to Google
+            Calendar &amp; Tasks.
           </p>
         </div>
+      </aside>
 
-        <button
-          onClick={onReset}
-          className="mt-6 w-full rounded-xl px-5 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
-          style={{ background: "linear-gradient(135deg, #8B5CF6, #34D399)" }}
-        >
-          Start New Task
-        </button>
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="bg-white border-b border-slate-200 px-6 py-3">
+          <h1 className="text-base font-semibold text-slate-800">
+            {current.label}
+          </h1>
+          <p className="text-xs text-slate-500">{current.description}</p>
+        </header>
+
+        <main className="flex-1 min-h-0">
+          {page === "breakdown" && <BreakdownPage onNavigate={setPage} />}
+          {page === "todo" && <TodoPage onNavigate={setPage} />}
+          {page === "kanban" && <KanbanPage onNavigate={setPage} />}
+        </main>
       </div>
     </div>
   );
 }
 
 export default function App() {
-  const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [isFinalized, setIsFinalized] = useState(false);
-  const [checklistItems, setChecklistItems] = useState([]);
-
-  const sendMessage = async () => {
-    const text = input.trim();
-    if (!text || isLoading) return;
-
-    setInput("");
-    setError(null);
-    setMessages((prev) => [...prev, { role: "user", text }]);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, message: text }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || `Request failed (${res.status})`);
-      }
-
-      const data = await res.json();
-      const reply = data.reply ?? "";
-
-      if (reply.includes(FINALIZE_MARKER)) {
-        const items = parseChecklist(reply);
-        setChecklistItems(items.map((item) => ({ text: item, done: false })));
-        setIsFinalized(true);
-      } else {
-        setMessages((prev) => [...prev, { role: "model", text: reply }]);
-      }
-    } catch (err) {
-      setError(
-        err.message ||
-          "Something went wrong talking to the AI. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleItem = (index) => {
-    setChecklistItems((prev) =>
-      prev.map((item, i) =>
-        i === index ? { ...item, done: !item.done } : item
-      )
-    );
-  };
-
-  const resetSession = () => {
-    setSessionId(crypto.randomUUID());
-    setMessages([]);
-    setInput("");
-    setError(null);
-    setIsFinalized(false);
-    setChecklistItems([]);
-  };
-
   return (
-    <div className="h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-3">
-        <img
-          src="/AuraList-logo.png"
-          alt="AuraList"
-          className="h-9"
-        />
-        <div className="ml-auto">
-          <p className="text-xs text-slate-500">
-            {isFinalized
-              ? "Checklist ready — check items off as you go"
-              : "Break your task into steps"}
-          </p>
-        </div>
-      </header>
-
-      <main className="flex-1 min-h-0 max-w-2xl w-full mx-auto">
-        {isFinalized ? (
-          <ChecklistView
-            items={checklistItems}
-            onToggle={toggleItem}
-            onReset={resetSession}
-          />
-        ) : (
-          <ChatView
-            messages={messages}
-            input={input}
-            setInput={setInput}
-            onSend={sendMessage}
-            isLoading={isLoading}
-            error={error}
-          />
-        )}
-      </main>
-    </div>
+    <TasksProvider>
+      <AppShell />
+    </TasksProvider>
   );
 }
