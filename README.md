@@ -53,3 +53,8 @@ your default Google Tasks list. It needs a Google OAuth client ID:
 
 Sign-in happens in a Google popup; the access token stays in the browser and
 no Google credentials are sent to the backend.
+
+
+## Progress Report
+
+08/07/206 - Pushed the initial version made with my collaborator.
