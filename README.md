@@ -13,6 +13,33 @@ export them to Google Calendar / Google Tasks.
 
 Tasks are shared across pages and persisted in your browser (localStorage).
 
+## Background — from a lean startup validation project
+
+AuraList started as a project in **MDIA1007 (Digital Entrepreneurship)** at UNSW,
+a course built around the **Lean Startup** methodology. The core idea the course
+drilled in: validate that a real problem exists *before* building a solution.
+So the app came second — the discovery process came first.
+
+We ran **two cycles of customer discovery interviews, five interviews per cycle
+(ten in total)**, structured as a build–measure–learn loop:
+
+- **Cycle 1 — problem discovery.** Five empathy-driven interviews focused on
+  understanding how people actually plan and break down large, vague goals,
+  before proposing any solution. The goal was to confirm the problem was real
+  and worth solving — not to pitch AuraList.
+- **Cycle 2 — solution validation.** After synthesizing the first round into a
+  clearer problem statement and an early concept, five more interviews tested
+  whether an AI-assisted task-breakdown approach resonated and where it fell
+  short — feeding directly back into the product direction.
+
+Throughout, the team worked the way a small startup would: tracking progress on
+a Kanban board in Jira and documenting research and decisions in Confluence.
+
+The biggest takeaway was that software engineering isn't just building —
+requirements discovery, user empathy, and structured research matter just as
+much, and they apply well beyond startups. AuraList is the continuation of that
+validated concept, evolved from a coursework prototype into a real product.
+
 ## Running locally
 
 Backend (port 3000):
