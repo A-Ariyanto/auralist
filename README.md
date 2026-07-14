@@ -40,6 +40,11 @@ requirements discovery, user empathy, and structured research matter just as
 much, and they apply well beyond startups. AuraList is the continuation of that
 validated concept, evolved from a coursework prototype into a real product.
 
+The project went on to place **second** in the course, a validation of both the
+discovery process and the product it produced.
+
+
+
 ## Running locally
 
 Backend (port 3000):
@@ -47,7 +52,6 @@ Backend (port 3000):
 ```bash
 cd backend
 npm install
-# put your Gemini key in backend/.env: GEMINI_API_KEY=...
 npm run dev
 ```
 
